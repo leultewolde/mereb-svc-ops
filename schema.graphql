@@ -1,0 +1,68 @@
+enum ProjectKind {
+  SERVICE
+  PACKAGE
+  MFE
+  INFRA
+  CHART
+  TERRAFORM
+  MISC
+}
+
+enum ProjectSource {
+  GITMODULE
+  MANUAL
+}
+
+enum DeployStatus {
+  UNKNOWN
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+type ProjectEnvironment {
+  name: String!
+  url: String
+  deployTarget: String
+  lastVersion: String
+  lastStatus: DeployStatus!
+}
+
+type Project {
+  id: ID!
+  name: String!
+  path: String!
+  repoUrl: String!
+  branch: String
+  kind: ProjectKind!
+  source: ProjectSource!
+  jenkinsJob: String
+  environments: [ProjectEnvironment!]!
+  tags: [String!]!
+}
+
+input ProjectEnvironmentInput {
+  name: String!
+  url: String
+  deployTarget: String
+}
+
+input AddProjectInput {
+  name: String!
+  path: String
+  repoUrl: String!
+  branch: String
+  kind: ProjectKind
+  jenkinsJob: String
+  environments: [ProjectEnvironmentInput!]
+  tags: [String!]
+}
+
+type Query {
+  projects(kind: ProjectKind, source: ProjectSource): [Project!]!
+}
+
+type Mutation {
+  addProject(input: AddProjectInput!): Project!
+  refreshProjects: [Project!]!
+}
