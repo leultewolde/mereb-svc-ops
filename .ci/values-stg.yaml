@@ -38,6 +38,21 @@ ingress:
       paths:
         - path: /ops
           pathType: Prefix
+          servicePort: http
+  tls:
+    - secretName: ops-stg-tls
+      hosts:
+        - api-stg.mereb.app
+
+configMap:
+  enabled: true
+  nameOverride: svc-ops-stg-config
+  data:
+    PORT: "4009"
+    OIDC_ISSUER: https://auth.mereb.app/realms/mereb
+    OIDC_AUDIENCE: account
+    REDIS_URL: redis://platform-stg-redis.platform-stg.svc.cluster.local:6379
+    KAFKA_BROKERS: redpanda-platform-stg:9092
 
 resources:
   requests:

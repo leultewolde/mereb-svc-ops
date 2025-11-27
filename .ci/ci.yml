@@ -84,6 +84,9 @@ deploy:
       delay: 10
       timeout: 60s
 
+signing:
+  enabled: false
+
 release:
   autoTag:
     enabled: true
