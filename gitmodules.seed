@@ -1,0 +1,80 @@
+[submodule "infra/platform"]
+	path = infra/platform
+	url = git@github.com:leultewolde/mereb-charts.git
+	branch = main
+[submodule "infra/charts"]
+	path = infra/charts
+	url = git@github.com:leultewolde/mereb-platform.git
+	branch = main
+[submodule "mereb-jenkins"]
+	path = mereb-jenkins
+	url = git@github.com:leultewolde/mereb-jenkins.git
+	branch = main
+[submodule "services/k3s-visualizer"]
+	path = services/k3s-visualizer
+	url = git@github.com:leultewolde/k3s-visualizer.git
+	branch = main
+[submodule "services/shared"]
+	path = services/shared
+	url = git@github.com:leultewolde/shared-mereb.git
+	branch = main
+[submodule "services/svc-auth"]
+	path = services/svc-auth
+	url = git@github.com:leultewolde/mereb-svc-auth.git
+	branch = main
+[submodule "services/svc-feed"]
+	path = services/svc-feed
+	url = git@github.com:leultewolde/mereb-svc-feed.git
+	branch = main
+[submodule "services/svc-media"]
+	path = services/svc-media
+	url = git@github.com:leultewolde/mereb-svc-media.git
+	branch = main
+[submodule "services/svc-profile"]
+	path = services/svc-profile
+	url = git@github.com:leultewolde/mereb-svc-profile.git
+	branch = main
+[submodule "packages/ui-shared"]
+	path = packages/ui-shared
+	url = git@github.com:leultewolde/mereb-ui-shared.git
+	branch = main
+[submodule "packages/shared-graphql"]
+	path = packages/shared-graphql
+	url = git@github.com:leultewolde/mereb-shared-graphql.git
+	branch = main
+[submodule "packages/app-admin"]
+	path = packages/app-admin
+	url = git@github.com:leultewolde/mereb-app-admin.git
+	branch = main
+[submodule "packages/app-feed"]
+	path = packages/app-feed
+	url = git@github.com:leultewolde/mereb-app-feed.git
+	branch = main
+[submodule "packages/app-profile"]
+	path = packages/app-profile
+	url = git@github.com:leultewolde/mereb-app-profile.git
+	branch = main
+[submodule "packages/app-messaging"]
+	path = packages/app-messaging
+	url = git@github.com:leultewolde/mereb-app-messaging.git
+	branch = main
+[submodule "packages/tokens"]
+	path = packages/tokens
+	url = git@github.com:leultewolde/mereb-tokens.git
+	branch = main
+[submodule "web/mfe-admin"]
+	path = web/mfe-admin
+	url = git@github.com:leultewolde/mereb-mfe-admin.git
+	branch = main
+[submodule "web/mfe-feed"]
+	path = web/mfe-feed
+	url = git@github.com:leultewolde/mereb-mfe-feed.git
+	branch = main
+[submodule "web/mfe-profile"]
+	path = web/mfe-profile
+	url = git@github.com:leultewolde/mereb-mfe-profile.git
+	branch = main
+[submodule "web/shell"]
+	path = web/shell
+	url = git@github.com:leultewolde/mereb-shell.git
+	branch = main

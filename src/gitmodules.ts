@@ -3,6 +3,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Project, ProjectKind } from './types.js';
 
+const serviceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
 export function inferKindFromPath(path: string): ProjectKind {
   if (path.startsWith('services/')) return 'SERVICE';
   if (path.startsWith('web/mfe')) return 'MFE';
@@ -22,8 +24,10 @@ interface GitmoduleEntry {
 }
 
 function findGitmodulesPath(): string {
-  const here = dirname(fileURLToPath(import.meta.url));
-  return resolve(here, '../../..', '.gitmodules');
+  const envPath = process.env.GITMODULES_PATH?.trim();
+  if (envPath) return envPath;
+  // svc-ops is deployed independently; keep an embedded copy of the root .gitmodules for seeding
+  return resolve(serviceRoot, 'gitmodules.seed');
 }
 
 export async function loadGitmodulesProjects(): Promise<Project[]> {

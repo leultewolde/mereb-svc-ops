@@ -21,6 +21,7 @@ Env vars (required):
 Optional:
 - `PORT` (default 4009)
 - `HOST` (default 0.0.0.0)
+- `GITMODULES_PATH` (optional) override path to the gitmodules seed file. By default uses the embedded `gitmodules.seed` in this service.
 
 ## Example GraphQL queries
 List all projects (gitmodules + manual):

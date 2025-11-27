@@ -1,0 +1,48 @@
+nameOverride: svc-ops
+
+replicaCount: 1
+
+imagePullSecrets:
+  - regcred
+
+image:
+  repository: registry.leultewolde.com/mereb/svc-ops
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: SERVICE_NAME
+      value: svc-ops
+  envFrom:
+    - configMapRef:
+        name: svc-ops-dev-config
+    - secretRef:
+        name: svc-ops-dev-secrets
+        optional: true
+
+service:
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      containerPort: 4009
+
+ingress:
+  enabled: true
+  className: kong
+  annotations:
+    kubernetes.io/ingress.class: kong
+    cert-manager.io/cluster-issuer: letsencrypt-http
+    konghq.com/strip-path: "true"
+  hosts:
+    - host: api-dev.mereb.app
+      paths:
+        - path: /ops
+          pathType: Prefix
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
