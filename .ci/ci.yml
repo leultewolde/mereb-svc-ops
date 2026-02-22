@@ -17,6 +17,7 @@ image:
   context: .
   dockerfile: Dockerfile
   tagStrategy: branch-sha
+  tagTemplate: "{{tagName}}"
   push:
     enabled: true
     when: '!pr'

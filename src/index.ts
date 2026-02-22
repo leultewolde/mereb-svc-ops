@@ -1,8 +1,11 @@
 import { buildServer } from './server.js';
+import { initDefaultTelemetry } from '@mereb/shared-packages';
 
 async function main(): Promise<void> {
   const port = Number(process.env.PORT ?? 4009);
   const host = process.env.HOST ?? '0.0.0.0';
+
+  initDefaultTelemetry('svc-ops');
   const server = await buildServer();
 
   try {

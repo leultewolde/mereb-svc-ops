@@ -1,7 +1,4 @@
-FROM node:20-alpine AS base
-WORKDIR /app
-
-RUN apk add --no-cache openssl
+FROM registry.leultewolde.com/mereb/mereb-node-base:v0.0.4 AS base
 
 COPY package.json pnpm-lock.yaml ./
 COPY schema.graphql schema.graphql
@@ -10,8 +7,7 @@ COPY tsconfig.base.json tsconfig.base.json
 COPY tsconfig.json tsconfig.json
 COPY gitmodules.seed gitmodules.seed
 
-RUN corepack enable && \
-    pnpm install --frozen-lockfile && \
+RUN pnpm install --frozen-lockfile && \
     pnpm run build
 
 CMD ["node", "dist/index.js"]
