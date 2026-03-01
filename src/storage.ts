@@ -6,6 +6,11 @@ import { inferKindFromPath } from './gitmodules.js';
 import type { ManualProjectInput, Project } from './types.js';
 
 function dataFilePath(): string {
+  const envPath = process.env.MANUAL_PROJECTS_PATH?.trim();
+  if (envPath) {
+    return envPath;
+  }
+
   const here = dirname(fileURLToPath(import.meta.url));
   return resolve(here, '..', 'data', 'projects.local.json');
 }

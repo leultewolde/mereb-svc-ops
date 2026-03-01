@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { createResolvers } from '../src/adapters/inbound/graphql/resolvers.js';
 import type { OpsApplicationModule } from '../src/application/ops/use-cases.js';
@@ -47,4 +47,3 @@ test('resolvers delegate query/mutation calls to application module', async () =
   const refreshed = await (mutation.refreshProjects as () => Promise<unknown>)();
   assert.deepEqual(refreshed, [{ id: '2', name: 'svc-feed' }]);
 });
-
