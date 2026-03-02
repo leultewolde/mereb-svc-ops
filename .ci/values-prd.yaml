@@ -18,6 +18,11 @@ image:
       value: http/protobuf
     - name: OTEL_EXPORTER_OTLP_TRACES_PROTOCOL
       value: http/protobuf
+    - name: OIDC_ISSUER
+      valueFrom:
+        configMapKeyRef:
+          name: platform-identity-prd
+          key: OIDC_ISSUER
   envFrom:
     - configMapRef:
         name: svc-ops-prd-config
@@ -55,7 +60,6 @@ configMap:
   nameOverride: svc-ops-prd-config
   data:
     PORT: "4009"
-    OIDC_ISSUER: https://auth.mereb.app/realms/mereb
     OIDC_AUDIENCE: account
     REDIS_URL: redis://platform-prd-redis.platform-prd.svc.cluster.local:6379
     KAFKA_BROKERS: redpanda-platform-prd:9092
