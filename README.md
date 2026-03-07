@@ -1,60 +1,53 @@
-# svc-ops (control plane API)
+# svc-ops
 
-Fastify + GraphQL service that inventories all Mereb projects (services, MFEs, packages, infra) and exposes metadata for dashboards. It seeds from `.gitmodules` and supports manual additions via GraphQL.
+`svc-ops` is the control-plane API for inventorying Mereb projects (services, MFEs, packages, infra). It aggregates data from seeded `.gitmodules` entries plus manual additions.
 
-## Features (current)
-- Loads project list from root `.gitmodules`, inferring type (service, MFE, package, infra, chart, misc).
-- Manual project additions persisted to `data/projects.local.json` via `addProject` mutation.
-- Keycloak-protected (OIDC issuer/audience required).
+## API surface
 
-Planned next steps are outlined in `docs/ops-control-plane.md`.
+- GraphQL endpoint: `POST /graphql`
+- Health checks:
+  - `GET /healthz`
+  - `GET /readyz`
 
-## Running locally
+Core GraphQL operations:
+
+- query: `projects(kind, source)`
+- mutations: `addProject(input)`, `refreshProjects`
+
+`addProject` persists manual entries to a JSON store (default `data/projects.local.json`).
+
+## Data sources
+
+- gitmodules source:
+  - defaults to embedded `gitmodules.seed`
+  - override path with `GITMODULES_PATH`
+- manual source:
+  - defaults to `data/projects.local.json`
+  - override path with `MANUAL_PROJECTS_PATH`
+
+## Environment
+
+| Variable | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `OIDC_ISSUER` | yes | - | JWT issuer. |
+| `OIDC_AUDIENCE` | yes | - | JWT audience/client ID. |
+| `GITMODULES_PATH` | no | `gitmodules.seed` | Optional source file for submodule inventory. |
+| `MANUAL_PROJECTS_PATH` | no | `data/projects.local.json` | Optional manual projects store path. |
+| `PORT` | no | `4009` | HTTP listen port. |
+| `HOST` | no | `0.0.0.0` | HTTP listen host. |
+
+## Local development
+
 ```bash
 pnpm --filter @services/svc-ops dev
+pnpm --filter @services/svc-ops build
+pnpm --filter @services/svc-ops start
 ```
 
-Env vars (required):
-- `OIDC_ISSUER` – Keycloak issuer URL
-- `OIDC_AUDIENCE` – expected audience / client ID
+## Tests
 
-Optional:
-- `PORT` (default 4009)
-- `HOST` (default 0.0.0.0)
-- `GITMODULES_PATH` (optional) override path to the gitmodules seed file. By default uses the embedded `gitmodules.seed` in this service.
-
-## Example GraphQL queries
-List all projects (gitmodules + manual):
-```graphql
-{
-  projects {
-    id
-    name
-    path
-    repoUrl
-    kind
-    source
-    jenkinsJob
-  }
-}
-```
-
-Add a manual project:
-```graphql
-mutation AddOpsProject {
-  addProject(
-    input: {
-      name: "infra-admin"
-      repoUrl: "git@github.com:example/infra-admin.git"
-      path: "infra/admin"
-      kind: INFRA
-      tags: ["admin"]
-    }
-  ) {
-    id
-    name
-    kind
-    source
-  }
-}
+```bash
+pnpm --filter @services/svc-ops test
+pnpm --filter @services/svc-ops test:integration
+pnpm --filter @services/svc-ops test:ci
 ```
