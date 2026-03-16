@@ -7,6 +7,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist node_modules",
+    "pretest:integration": "npm run prisma:generate",
+    "prebuild": "npm run prisma:generate",
+    "pretypecheck": "npm run prisma:generate",
     "dev": "tsx src/index.ts",
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
@@ -15,7 +18,9 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:ci": "pnpm run test:unit && pnpm run test:integration",
     "start": "node dist/index.js",
-    "lint": "eslint \"src/**/*.{ts,tsx}\""
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
@@ -24,7 +29,8 @@
     "@fastify/under-pressure": "^9.0.3",
     "@graphql-tools/schema": "^10.0.31",
     "@graphql-tools/utils": "^10.11.0",
-    "@mereb/shared-packages": "0.0.42",
+    "@mereb/shared-packages": "0.0.43",
+    "@prisma/client": "^5.22.0",
     "fastify": "^5.8.1",
     "graphql": "^16.12.0",
     "mercurius": "^16.8.0"
@@ -37,6 +43,7 @@
     "@typescript-eslint/parser": "^8.56.0",
     "@vitest/coverage-v8": "^1.6.0",
     "eslint": "9.39.1",
+    "prisma": "^5.22.0",
     "vitest": "^1.6.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

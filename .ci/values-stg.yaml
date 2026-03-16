@@ -23,6 +23,31 @@ image:
         configMapKeyRef:
           name: platform-identity-stg
           key: OIDC_ISSUER
+    - name: KEYCLOAK_URL
+      valueFrom:
+        configMapKeyRef:
+          name: platform-identity-stg
+          key: KEYCLOAK_URL
+    - name: KEYCLOAK_REALM
+      valueFrom:
+        configMapKeyRef:
+          name: platform-identity-stg
+          key: KC_REALM
+    - name: KEYCLOAK_INVITE_CLIENT_ID
+      valueFrom:
+        configMapKeyRef:
+          name: platform-identity-stg
+          key: KEYCLOAK_INVITE_CLIENT_ID
+    - name: KEYCLOAK_INVITE_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: platform-identity-stg-secrets
+          key: KEYCLOAK_INVITE_CLIENT_SECRET
+    - name: PROFILE_BOOTSTRAP_SHARED_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: platform-identity-stg-secrets
+          key: PROFILE_BOOTSTRAP_SHARED_SECRET
   envFrom:
     - configMapRef:
         name: svc-ops-stg-config
@@ -61,6 +86,7 @@ configMap:
   data:
     PORT: "4009"
     OIDC_AUDIENCE: account
+    PROFILE_BOOTSTRAP_URL: http://svc-profile.apps-stg.svc.cluster.local/internal/users/bootstrap
     REDIS_URL: redis://platform-stg-redis.platform-stg.svc.cluster.local:6379
     KAFKA_BROKERS: redpanda-platform-stg:9092
     SPLUNK_HEC_URL: https://splunk-hec.mereb.app/services/collector/event

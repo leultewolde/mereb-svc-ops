@@ -1,0 +1,44 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
+}
+
+model RuntimeFlag {
+  key         String   @id @db.VarChar(64)
+  description String?  @db.VarChar(280)
+  enabled     Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?  @db.VarChar(128)
+}
+
+model InviteCode {
+  code                String           @id @db.VarChar(64)
+  email               String?          @db.VarChar(320)
+  label               String?          @db.VarChar(120)
+  note                String?          @db.VarChar(500)
+  status              InviteCodeStatus @default(ACTIVE)
+  expiresAt           DateTime?
+  createdAt           DateTime         @default(now())
+  createdBy           String?          @db.VarChar(128)
+  redeemedAt          DateTime?
+  redeemedByUserId    String?          @db.VarChar(128)
+  redeemedEmail       String?          @db.VarChar(320)
+  redeemedDisplayName String?          @db.VarChar(120)
+  updatedAt           DateTime         @updatedAt
+
+  @@index([status, createdAt])
+  @@index([expiresAt])
+}
+
+enum InviteCodeStatus {
+  ACTIVE
+  DISABLED
+  REDEEMING
+  REDEEMED
+}

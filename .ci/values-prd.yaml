@@ -23,6 +23,31 @@ image:
         configMapKeyRef:
           name: platform-identity-prd
           key: OIDC_ISSUER
+    - name: KEYCLOAK_URL
+      valueFrom:
+        configMapKeyRef:
+          name: platform-identity-prd
+          key: KEYCLOAK_URL
+    - name: KEYCLOAK_REALM
+      valueFrom:
+        configMapKeyRef:
+          name: platform-identity-prd
+          key: KC_REALM
+    - name: KEYCLOAK_INVITE_CLIENT_ID
+      valueFrom:
+        configMapKeyRef:
+          name: platform-identity-prd
+          key: KEYCLOAK_INVITE_CLIENT_ID
+    - name: KEYCLOAK_INVITE_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: platform-identity-prd-secrets
+          key: KEYCLOAK_INVITE_CLIENT_SECRET
+    - name: PROFILE_BOOTSTRAP_SHARED_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: platform-identity-prd-secrets
+          key: PROFILE_BOOTSTRAP_SHARED_SECRET
   envFrom:
     - configMapRef:
         name: svc-ops-prd-config
@@ -61,6 +86,9 @@ configMap:
   data:
     PORT: "4009"
     OIDC_AUDIENCE: account
+    OPS_DEFAULT_FLAGS: >-
+      [{"key":"inviteOnlyRegistration","description":"Require invite redemption through /register for pilot signups.","enabled":false}]
+    PROFILE_BOOTSTRAP_URL: http://svc-profile.apps-prd.svc.cluster.local/internal/users/bootstrap
     REDIS_URL: redis://platform-prd-redis.platform-prd.svc.cluster.local:6379
     KAFKA_BROKERS: redpanda-platform-prd:9092
     SPLUNK_HEC_URL: https://splunk-hec.mereb.app/services/collector/event

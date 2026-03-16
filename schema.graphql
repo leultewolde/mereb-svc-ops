@@ -20,6 +20,29 @@ enum DeployStatus {
   FAILED
 }
 
+type RuntimeFlag {
+  key: String!
+  description: String
+  enabled: Boolean!
+  updatedAt: String!
+  updatedBy: String
+}
+
+type InviteCode {
+  code: String!
+  email: String
+  label: String
+  note: String
+  enabled: Boolean!
+  expiresAt: String
+  createdAt: String!
+  createdBy: String
+  redeemedAt: String
+  redeemedByUserId: String
+  redeemedEmail: String
+  redeemedDisplayName: String
+}
+
 type ProjectEnvironment {
   name: String!
   url: String
@@ -58,11 +81,38 @@ input AddProjectInput {
   tags: [String!]
 }
 
+input CreateRuntimeFlagInput {
+  key: String!
+  description: String
+  enabled: Boolean = false
+}
+
+input UpdateRuntimeFlagInput {
+  description: String
+  enabled: Boolean
+}
+
+input CreateInviteCodeInput {
+  code: String
+  email: String
+  label: String
+  note: String
+  expiresAt: String
+}
+
 type Query {
   projects(kind: ProjectKind, source: ProjectSource): [Project!]!
+  runtimeFlags: [RuntimeFlag!]!
+  inviteCodes: [InviteCode!]!
 }
 
 type Mutation {
   addProject(input: AddProjectInput!): Project!
   refreshProjects: [Project!]!
+  createRuntimeFlag(input: CreateRuntimeFlagInput!): RuntimeFlag!
+  updateRuntimeFlag(key: String!, input: UpdateRuntimeFlagInput!): RuntimeFlag!
+  deleteRuntimeFlag(key: String!): Boolean!
+  createInviteCode(input: CreateInviteCodeInput!): InviteCode!
+  disableInviteCode(code: String!): InviteCode!
+  deleteInviteCode(code: String!): Boolean!
 }
