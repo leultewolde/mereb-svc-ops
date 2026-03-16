@@ -3,6 +3,19 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterAll, beforeAll, test } from 'vitest';
+import { createOpsApplicationModule } from '../src/application/ops/use-cases.js';
+import { GitmodulesProjectsSourceAdapter } from '../src/adapters/outbound/projects/gitmodules-project-source.js';
+import { ManualProjectsStoreAdapter } from '../src/adapters/outbound/projects/manual-projects-store.js';
+import type {
+  InviteCodesStorePort,
+  InviteProvisionerPort,
+  RuntimeFlagsStorePort
+} from '../src/application/ops/ports.js';
+import type {
+  InviteCode,
+  RedeemInviteInput,
+  RuntimeFlag
+} from '../src/domain/ops/runtime-config.js';
 
 let previousGitmodulesPath: string | undefined;
 let previousManualProjectsPath: string | undefined;
@@ -10,6 +23,134 @@ let previousIssuer: string | undefined;
 let previousAudience: string | undefined;
 let gitmodulesPath = '';
 let manualProjectsPath = '';
+
+function createRuntimeFlagStore(initialFlags: RuntimeFlag[] = []): RuntimeFlagsStorePort {
+  const flags = [...initialFlags];
+
+  return {
+    async listRuntimeFlags() {
+      return [...flags];
+    },
+    async getPublicFlags() {
+      return Object.fromEntries(flags.map((flag) => [flag.key, flag.enabled]));
+    },
+    async createRuntimeFlag(input, actorId) {
+      const created: RuntimeFlag = {
+        key: input.key,
+        description: input.description?.trim() || null,
+        enabled: input.enabled ?? false,
+        updatedAt: new Date('2026-03-15T00:00:00.000Z').toISOString(),
+        updatedBy: actorId
+      };
+      flags.push(created);
+      return created;
+    },
+    async updateRuntimeFlag(key, input, actorId) {
+      const existing = flags.find((flag) => flag.key === key);
+      assert.ok(existing, `expected runtime flag ${key} to exist`);
+      existing.description = input.description === undefined ? existing.description : (input.description?.trim() || null);
+      existing.enabled = input.enabled ?? existing.enabled;
+      existing.updatedBy = actorId;
+      return existing;
+    },
+    async deleteRuntimeFlag(key) {
+      const index = flags.findIndex((flag) => flag.key === key);
+      if (index === -1) return false;
+      flags.splice(index, 1);
+      return true;
+    },
+    async ensureRuntimeFlags(defaults) {
+      for (const entry of defaults) {
+        if (!flags.some((flag) => flag.key === entry.key)) {
+          flags.push({
+            key: entry.key,
+            description: entry.description ?? null,
+            enabled: entry.enabled ?? false,
+            updatedAt: new Date('2026-03-15T00:00:00.000Z').toISOString(),
+            updatedBy: 'seed'
+          });
+        }
+      }
+    }
+  };
+}
+
+function createInviteCodeStore(initialInvites: InviteCode[] = []): InviteCodesStorePort {
+  const invites = [...initialInvites];
+
+  return {
+    async listInviteCodes() {
+      return [...invites];
+    },
+    async createInviteCode(input, actorId) {
+      const created: InviteCode = {
+        code: input.code?.trim() || 'AUTO-CODE-0001',
+        email: input.email?.trim() || null,
+        label: input.label?.trim() || null,
+        note: input.note?.trim() || null,
+        enabled: true,
+        expiresAt: input.expiresAt ?? null,
+        createdAt: new Date('2026-03-15T00:00:00.000Z').toISOString(),
+        createdBy: actorId,
+        redeemedAt: null,
+        redeemedByUserId: null,
+        redeemedEmail: null,
+        redeemedDisplayName: null
+      };
+      invites.push(created);
+      return created;
+    },
+    async disableInviteCode(code) {
+      const existing = invites.find((invite) => invite.code === code);
+      assert.ok(existing, `expected invite code ${code} to exist`);
+      existing.enabled = false;
+      return existing;
+    },
+    async deleteInviteCode(code) {
+      const index = invites.findIndex((invite) => invite.code === code);
+      if (index === -1) return false;
+      invites.splice(index, 1);
+      return true;
+    },
+    async beginRedeemInvite(input) {
+      const existing = invites.find((invite) => invite.code === input.code);
+      if (!existing) {
+        throw new Error('Invite code is invalid');
+      }
+      if (!existing.enabled) {
+        throw new Error('Invite code is disabled');
+      }
+      if (existing.redeemedAt) {
+        throw new Error('Invite code has already been redeemed');
+      }
+      return existing;
+    },
+    async completeRedeemInvite(code, result) {
+      const existing = invites.find((invite) => invite.code === code);
+      assert.ok(existing, `expected invite code ${code} to exist`);
+      existing.redeemedAt = new Date('2026-03-15T01:00:00.000Z').toISOString();
+      existing.redeemedByUserId = result.userId;
+      existing.redeemedEmail = result.email;
+      existing.redeemedDisplayName = result.displayName;
+    },
+    async cancelRedeemInvite(code) {
+      const existing = invites.find((invite) => invite.code === code);
+      assert.ok(existing, `expected invite code ${code} to exist`);
+      existing.redeemedAt = null;
+      existing.redeemedByUserId = null;
+      existing.redeemedEmail = null;
+      existing.redeemedDisplayName = null;
+    }
+  };
+}
+
+function createInviteProvisionerStub(): InviteProvisionerPort {
+  return {
+    async createUser(input: RedeemInviteInput) {
+      return { userId: `usr-${input.code.toLowerCase()}` };
+    }
+  };
+}
 
 beforeAll(async () => {
   const dir = await mkdtemp(join(tmpdir(), 'svc-ops-it-'));
@@ -65,9 +206,16 @@ afterAll(() => {
   }
 });
 
-test('buildServer exposes project query and mutation flows with file-backed storage', async () => {
+test('buildServer exposes project query and mutation flows with file-backed project storage', async () => {
   const { buildServer } = await import('../src/server.js');
-  const app = await buildServer();
+  const ops = createOpsApplicationModule({
+    gitmodules: new GitmodulesProjectsSourceAdapter(),
+    manualStore: new ManualProjectsStoreAdapter(),
+    runtimeFlags: createRuntimeFlagStore(),
+    inviteCodes: createInviteCodeStore(),
+    inviteProvisioner: createInviteProvisionerStub()
+  });
+  const app = await buildServer({ ops });
 
   try {
     const projectsResponse = await app.inject({

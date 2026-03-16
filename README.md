@@ -37,6 +37,7 @@ Public HTTP operations:
 
 | Variable | Required | Default | Notes |
 | --- | --- | --- | --- |
+| `DATABASE_URL` | yes | - | Postgres connection string for the `svc_ops` schema. |
 | `OIDC_ISSUER` | yes | - | JWT issuer. |
 | `OIDC_AUDIENCE` | yes | - | JWT audience/client ID. |
 | `GITMODULES_PATH` | no | `gitmodules.seed` | Optional source file for submodule inventory. |
