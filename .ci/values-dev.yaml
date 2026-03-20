@@ -80,6 +80,44 @@ ingress:
       hosts:
         - api-dev.mereb.app
 
+extraIngresses:
+  - nameSuffix: flags
+    className: kong
+    annotations:
+      kubernetes.io/ingress.class: kong
+      cert-manager.io/cluster-issuer: letsencrypt-http
+      konghq.com/strip-path: "false"
+      konghq.com/methods: GET,OPTIONS
+      konghq.com/plugins: platform-cors-dev
+    hosts:
+      - host: api-dev.mereb.app
+        paths:
+          - path: /flags
+            pathType: Prefix
+            servicePort: http
+    tls:
+      - secretName: ops-dev-tls
+        hosts:
+          - api-dev.mereb.app
+  - nameSuffix: invite-redeem
+    className: kong
+    annotations:
+      kubernetes.io/ingress.class: kong
+      cert-manager.io/cluster-issuer: letsencrypt-http
+      konghq.com/strip-path: "false"
+      konghq.com/methods: POST,OPTIONS
+      konghq.com/plugins: platform-cors-dev
+    hosts:
+      - host: api-dev.mereb.app
+        paths:
+          - path: /invite/redeem
+            pathType: Prefix
+            servicePort: http
+    tls:
+      - secretName: ops-dev-tls
+        hosts:
+          - api-dev.mereb.app
+
 configMap:
   enabled: true
   nameOverride: svc-ops-dev-config

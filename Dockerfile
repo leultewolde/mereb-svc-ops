@@ -7,8 +7,10 @@ COPY src src
 COPY tsconfig.base.json tsconfig.base.json
 COPY tsconfig.json tsconfig.json
 COPY gitmodules.seed gitmodules.seed
+COPY docker-entrypoint.sh docker-entrypoint.sh
 
 RUN pnpm install --frozen-lockfile && \
-    pnpm run build
+    pnpm run build && \
+    chmod +x docker-entrypoint.sh
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "docker-entrypoint.sh"]
