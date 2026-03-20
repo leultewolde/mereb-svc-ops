@@ -49,6 +49,8 @@ Public HTTP operations:
 | `KEYCLOAK_INVITE_CLIENT_SECRET` | no | - | Secret for the invite onboarding client. |
 | `PROFILE_BOOTSTRAP_URL` | no | - | Internal `svc-profile` bootstrap endpoint used after invite redemption. |
 | `PROFILE_BOOTSTRAP_SHARED_SECRET` | no | - | Shared secret for the profile bootstrap webhook. |
+| `PRISMA_BASELINE_ON_P3005` | no | `0` | When set to `1`, allows a one-time Prisma baseline flow if startup sees `P3005` on a non-empty schema with no migration history. |
+| `PRISMA_BASELINE_MIGRATION` | no | - | Migration directory name to mark as applied after the one-time baseline path succeeds. |
 | `PORT` | no | `4009` | HTTP listen port. |
 | `HOST` | no | `0.0.0.0` | HTTP listen host. |
 
@@ -73,3 +75,17 @@ pnpm --filter @services/svc-ops test
 pnpm --filter @services/svc-ops test:integration
 pnpm --filter @services/svc-ops test:ci
 ```
+
+## Migration bootstrap
+
+This service normally runs `prisma migrate deploy` on startup. Production also
+enables a one-time fallback for the first rollout against an older non-empty
+`svc_ops` schema that predates Prisma migration history:
+
+1. `prisma migrate deploy`
+2. if Prisma returns `P3005`, run `prisma db push --skip-generate`
+3. mark `PRISMA_BASELINE_MIGRATION` as applied with `prisma migrate resolve`
+4. rerun `prisma migrate deploy`
+
+That fallback is gated by `PRISMA_BASELINE_ON_P3005=1` and is only intended for
+existing environments being brought under Prisma Migrate for the first time.

@@ -48,6 +48,10 @@ image:
         secretKeyRef:
           name: platform-identity-prd-secrets
           key: PROFILE_BOOTSTRAP_SHARED_SECRET
+    - name: PRISMA_BASELINE_ON_P3005
+      value: "1"
+    - name: PRISMA_BASELINE_MIGRATION
+      value: 20260315103000_runtime_flags_and_invites
   envFrom:
     - configMapRef:
         name: svc-ops-prd-config
