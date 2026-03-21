@@ -23,6 +23,18 @@ export type InviteCode = {
   redeemedDisplayName: string | null;
 };
 
+export type InviteEmailDelivery = {
+  delivered: boolean;
+  recipient: string;
+  attemptedAt: string;
+  error: string | null;
+};
+
+export type CreateInviteCodeResult = {
+  inviteCode: InviteCode;
+  emailDelivery: InviteEmailDelivery | null;
+};
+
 export type DefaultRuntimeFlag = {
   key: string;
   description?: string | null;

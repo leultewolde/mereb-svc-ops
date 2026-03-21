@@ -4,6 +4,7 @@ import type {
   CreateRuntimeFlagInput,
   DefaultRuntimeFlag,
   InviteCode,
+  InviteEmailDelivery,
   RedeemInviteInput,
   RuntimeFlag,
   RuntimeFlagsPayload,
@@ -30,6 +31,7 @@ export interface RuntimeFlagsStorePort {
 
 export interface InviteCodesStorePort {
   listInviteCodes(): Promise<InviteCode[]>;
+  getInviteCode(code: string): Promise<InviteCode | null>;
   createInviteCode(input: CreateInviteCodeInput, actorId: string): Promise<InviteCode>;
   disableInviteCode(code: string, actorId: string): Promise<InviteCode>;
   deleteInviteCode(code: string): Promise<boolean>;
@@ -44,4 +46,8 @@ export interface InviteCodesStorePort {
 
 export interface InviteProvisionerPort {
   createUser(input: RedeemInviteInput): Promise<{ userId: string }>;
+}
+
+export interface InviteEmailSenderPort {
+  sendInviteCodeEmail(invite: InviteCode & { email: string }): Promise<InviteEmailDelivery>;
 }

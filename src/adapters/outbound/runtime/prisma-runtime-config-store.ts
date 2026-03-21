@@ -147,6 +147,13 @@ export class PrismaRuntimeConfigStoreAdapter implements RuntimeFlagsStorePort, I
     return invites.map(toInviteCode);
   }
 
+  async getInviteCode(code: string): Promise<InviteCode | null> {
+    const invite = await this.db.inviteCode.findUnique({
+      where: { code: normalizeInviteCode(code) }
+    });
+    return invite ? toInviteCode(invite) : null;
+  }
+
   async createInviteCode(input: CreateInviteCodeInput, actorId: string): Promise<InviteCode> {
     const attemptCode = input.code?.trim() ? normalizeInviteCode(input.code) : generateInviteCode();
     const created = await this.db.inviteCode.create({

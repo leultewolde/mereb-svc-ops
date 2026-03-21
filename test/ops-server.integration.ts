@@ -8,11 +8,13 @@ import { GitmodulesProjectsSourceAdapter } from '../src/adapters/outbound/projec
 import { ManualProjectsStoreAdapter } from '../src/adapters/outbound/projects/manual-projects-store.js';
 import type {
   InviteCodesStorePort,
+  InviteEmailSenderPort,
   InviteProvisionerPort,
   RuntimeFlagsStorePort
 } from '../src/application/ops/ports.js';
 import type {
   InviteCode,
+  InviteEmailDelivery,
   RedeemInviteInput,
   RuntimeFlag
 } from '../src/domain/ops/runtime-config.js';
@@ -82,6 +84,9 @@ function createInviteCodeStore(initialInvites: InviteCode[] = []): InviteCodesSt
     async listInviteCodes() {
       return [...invites];
     },
+    async getInviteCode(code) {
+      return invites.find((invite) => invite.code === code) ?? null;
+    },
     async createInviteCode(input, actorId) {
       const created: InviteCode = {
         code: input.code?.trim() || 'AUTO-CODE-0001',
@@ -140,6 +145,19 @@ function createInviteCodeStore(initialInvites: InviteCode[] = []): InviteCodesSt
       existing.redeemedByUserId = null;
       existing.redeemedEmail = null;
       existing.redeemedDisplayName = null;
+    }
+  };
+}
+
+function createInviteEmailSenderStub(): InviteEmailSenderPort {
+  return {
+    async sendInviteCodeEmail(invite): Promise<InviteEmailDelivery> {
+      return {
+        delivered: true,
+        recipient: invite.email,
+        attemptedAt: '2026-03-15T00:05:00.000Z',
+        error: null
+      };
     }
   };
 }
@@ -213,7 +231,8 @@ test('buildServer exposes project query and mutation flows with file-backed proj
     manualStore: new ManualProjectsStoreAdapter(),
     runtimeFlags: createRuntimeFlagStore(),
     inviteCodes: createInviteCodeStore(),
-    inviteProvisioner: createInviteProvisionerStub()
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender: createInviteEmailSenderStub()
   });
   const app = await buildServer({ ops });
 

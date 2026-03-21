@@ -6,17 +6,21 @@ import type {
 import { listProjectsFromSnapshot } from '../../domain/ops/projects.js';
 import type {
   CreateInviteCodeInput,
+  CreateInviteCodeResult,
   CreateRuntimeFlagInput,
   DefaultRuntimeFlag,
   InviteCode,
+  InviteEmailDelivery,
   RedeemInviteInput,
   RuntimeFlag,
   RuntimeFlagsPayload,
   UpdateRuntimeFlagInput
 } from '../../domain/ops/runtime-config.js';
+import { isInviteActive } from '../../domain/ops/runtime-config.js';
 import type {
   GitmoduleProjectsSourcePort,
   InviteCodesStorePort,
+  InviteEmailSenderPort,
   InviteProvisionerPort,
   ManualProjectsStorePort,
   RuntimeFlagsStorePort
@@ -29,6 +33,7 @@ interface OpsDeps {
   runtimeFlags: RuntimeFlagsStorePort;
   inviteCodes: InviteCodesStorePort;
   inviteProvisioner: InviteProvisionerPort;
+  inviteEmailSender: InviteEmailSenderPort;
 }
 
 interface Principal {
@@ -150,11 +155,26 @@ export class ListInviteCodesQuery {
 }
 
 export class CreateInviteCodeUseCase {
-  constructor(private readonly inviteCodes: InviteCodesStorePort) {}
+  constructor(
+    private readonly inviteCodes: InviteCodesStorePort,
+    private readonly inviteEmailSender: InviteEmailSenderPort
+  ) {}
 
-  async execute(input: CreateInviteCodeInput, principal: Principal | undefined): Promise<InviteCode> {
+  async execute(input: CreateInviteCodeInput, principal: Principal | undefined): Promise<CreateInviteCodeResult> {
     const actorId = requireFullAccess(principal);
-    return this.inviteCodes.createInviteCode(input, actorId);
+    const inviteCode = await this.inviteCodes.createInviteCode(input, actorId);
+    if (!inviteCode.email) {
+      return {
+        inviteCode,
+        emailDelivery: null
+      };
+    }
+    const emailTargetedInvite = { ...inviteCode, email: inviteCode.email };
+
+    return {
+      inviteCode,
+      emailDelivery: await sendInviteCodeEmail(this.inviteEmailSender, emailTargetedInvite)
+    };
   }
 }
 
@@ -173,6 +193,36 @@ export class DeleteInviteCodeUseCase {
   async execute(code: string, principal: Principal | undefined): Promise<boolean> {
     requireFullAccess(principal);
     return this.inviteCodes.deleteInviteCode(code);
+  }
+}
+
+export class ResendInviteCodeEmailUseCase {
+  constructor(
+    private readonly inviteCodes: InviteCodesStorePort,
+    private readonly inviteEmailSender: InviteEmailSenderPort
+  ) {}
+
+  async execute(code: string, principal: Principal | undefined): Promise<InviteEmailDelivery> {
+    requireFullAccess(principal);
+    const inviteCode = await this.inviteCodes.getInviteCode(code);
+    if (!inviteCode) {
+      throw new Error('Invite code is invalid');
+    }
+    if (!inviteCode.email) {
+      throw new Error('Invite code is not reserved for a specific email address');
+    }
+    if (inviteCode.redeemedAt) {
+      throw new Error('Invite code has already been redeemed');
+    }
+    if (!inviteCode.enabled) {
+      throw new Error('Invite code is disabled');
+    }
+    if (!isInviteActive(inviteCode)) {
+      throw new Error('Invite code has expired');
+    }
+    const emailTargetedInvite = { ...inviteCode, email: inviteCode.email };
+
+    return sendInviteCodeEmail(this.inviteEmailSender, emailTargetedInvite);
   }
 }
 
@@ -205,6 +255,22 @@ export class RedeemInviteUseCase {
   }
 }
 
+async function sendInviteCodeEmail(
+  inviteEmailSender: InviteEmailSenderPort,
+  inviteCode: InviteCode & { email: string }
+): Promise<InviteEmailDelivery> {
+  try {
+    return await inviteEmailSender.sendInviteCodeEmail(inviteCode);
+  } catch (error) {
+    return {
+      delivered: false,
+      recipient: inviteCode.email,
+      attemptedAt: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown invite email delivery error'
+    };
+  }
+}
+
 export interface OpsApplicationModule {
   queries: {
     listProjects: ListProjectsQuery;
@@ -220,6 +286,7 @@ export interface OpsApplicationModule {
     deleteRuntimeFlag: DeleteRuntimeFlagUseCase;
     ensureDefaultFlags: EnsureDefaultFlagsUseCase;
     createInviteCode: CreateInviteCodeUseCase;
+    resendInviteCodeEmail: ResendInviteCodeEmailUseCase;
     disableInviteCode: DisableInviteCodeUseCase;
     deleteInviteCode: DeleteInviteCodeUseCase;
     redeemInvite: RedeemInviteUseCase;
@@ -242,7 +309,8 @@ export function createOpsApplicationModule(deps: OpsDeps): OpsApplicationModule 
       updateRuntimeFlag: new UpdateRuntimeFlagUseCase(deps.runtimeFlags),
       deleteRuntimeFlag: new DeleteRuntimeFlagUseCase(deps.runtimeFlags),
       ensureDefaultFlags: new EnsureDefaultFlagsUseCase(deps.runtimeFlags),
-      createInviteCode: new CreateInviteCodeUseCase(deps.inviteCodes),
+      createInviteCode: new CreateInviteCodeUseCase(deps.inviteCodes, deps.inviteEmailSender),
+      resendInviteCodeEmail: new ResendInviteCodeEmailUseCase(deps.inviteCodes, deps.inviteEmailSender),
       disableInviteCode: new DisableInviteCodeUseCase(deps.inviteCodes),
       deleteInviteCode: new DeleteInviteCodeUseCase(deps.inviteCodes),
       redeemInvite: new RedeemInviteUseCase(deps.runtimeFlags, deps.inviteCodes, deps.inviteProvisioner)

@@ -4,12 +4,18 @@ import { createOpsApplicationModule } from '../src/application/ops/use-cases.js'
 import type {
   GitmoduleProjectsSourcePort,
   InviteCodesStorePort,
+  InviteEmailSenderPort,
   InviteProvisionerPort,
   ManualProjectsStorePort,
   RuntimeFlagsStorePort
 } from '../src/application/ops/ports.js';
 import type { ManualProjectInput, Project } from '../src/domain/ops/projects.js';
-import type { InviteCode, RedeemInviteInput, RuntimeFlag } from '../src/domain/ops/runtime-config.js';
+import type {
+  InviteCode,
+  InviteEmailDelivery,
+  RedeemInviteInput,
+  RuntimeFlag
+} from '../src/domain/ops/runtime-config.js';
 
 function project(overrides: Partial<Project> = {}): Project {
   return {
@@ -85,6 +91,9 @@ function createInviteCodeStore(initialInvites: InviteCode[] = []): InviteCodesSt
     async listInviteCodes() {
       return [...invites];
     },
+    async getInviteCode(code) {
+      return invites.find((invite) => invite.code === code) ?? null;
+    },
     async createInviteCode(input, actorId) {
       const created: InviteCode = {
         code: input.code?.trim() || 'AUTO-CODE-0001',
@@ -150,6 +159,28 @@ function createInviteCodeStore(initialInvites: InviteCode[] = []): InviteCodesSt
   };
 }
 
+function createInviteEmailSenderStub(
+  implementation?: (invite: InviteCode & { email: string }) => Promise<InviteEmailDelivery>
+): InviteEmailSenderPort & { sent: Array<InviteCode & { email: string }> } {
+  const sent: Array<InviteCode & { email: string }> = [];
+
+  return {
+    sent,
+    async sendInviteCodeEmail(invite) {
+      sent.push(invite);
+      if (implementation) {
+        return implementation(invite);
+      }
+      return {
+        delivered: true,
+        recipient: invite.email,
+        attemptedAt: '2026-03-15T00:05:00.000Z',
+        error: null
+      };
+    }
+  };
+}
+
 function createInviteProvisionerStub(
   implementation?: (input: RedeemInviteInput) => Promise<{ userId: string }>
 ): InviteProvisionerPort {
@@ -205,7 +236,8 @@ test('listProjects merges gitmodule/manual projects and filters by source', asyn
     ]),
     runtimeFlags,
     inviteCodes,
-    inviteProvisioner: createInviteProvisionerStub()
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender: createInviteEmailSenderStub()
   });
 
   const projects = await ops.queries.listProjects.execute({ source: 'GITMODULE' });
@@ -235,7 +267,8 @@ test('runtime flags support read access for limited admins and write access for 
     manualStore: createManualStore([]),
     runtimeFlags,
     inviteCodes: createInviteCodeStore(),
-    inviteProvisioner: createInviteProvisionerStub()
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender: createInviteEmailSenderStub()
   });
 
   const readOnlyFlags = await ops.queries.listRuntimeFlags.execute({
@@ -297,7 +330,8 @@ test('invite redemption provisions a user and completes redemption when the flag
     manualStore: createManualStore([]),
     runtimeFlags,
     inviteCodes,
-    inviteProvisioner: createInviteProvisionerStub()
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender: createInviteEmailSenderStub()
   });
 
   const result = await ops.commands.redeemInvite.execute({
@@ -346,7 +380,8 @@ test('invite redemption cancels the invite when provisioning fails', async () =>
     inviteCodes,
     inviteProvisioner: createInviteProvisionerStub(async () => {
       throw new Error('Keycloak user creation failed (409)');
-    })
+    }),
+    inviteEmailSender: createInviteEmailSenderStub()
   });
 
   await assert.rejects(
@@ -361,4 +396,143 @@ test('invite redemption cancels the invite when provisioning fails', async () =>
   );
   assert.equal(inviteCodes.invites[0]?.redeemedByUserId, null);
   assert.equal(inviteCodes.invites[0]?.redeemedEmail, null);
+});
+
+test('createInviteCode returns no delivery metadata when the invite is not email-targeted', async () => {
+  const inviteCodes = createInviteCodeStore();
+  const inviteEmailSender = createInviteEmailSenderStub();
+  const ops = createOpsApplicationModule({
+    gitmodules: createGitmoduleSource([]),
+    manualStore: createManualStore([]),
+    runtimeFlags: createRuntimeFlagStore(),
+    inviteCodes,
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender
+  });
+
+  const created = await ops.commands.createInviteCode.execute(
+    { code: 'OPEN-0001-AAAA', label: 'Open invite' },
+    { userId: 'admin-1', roles: ['admin'] }
+  );
+
+  assert.equal(created.inviteCode.code, 'OPEN-0001-AAAA');
+  assert.equal(created.emailDelivery, null);
+  assert.equal(inviteEmailSender.sent.length, 0);
+});
+
+test('createInviteCode sends an invite email when a reserved email is provided', async () => {
+  const inviteEmailSender = createInviteEmailSenderStub();
+  const ops = createOpsApplicationModule({
+    gitmodules: createGitmoduleSource([]),
+    manualStore: createManualStore([]),
+    runtimeFlags: createRuntimeFlagStore(),
+    inviteCodes: createInviteCodeStore(),
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender
+  });
+
+  const created = await ops.commands.createInviteCode.execute(
+    { code: 'MAIL-0001-AAAA', email: 'pilot@example.com' },
+    { userId: 'admin-1', roles: ['admin'] }
+  );
+
+  assert.equal(created.inviteCode.email, 'pilot@example.com');
+  assert.deepEqual(created.emailDelivery, {
+    delivered: true,
+    recipient: 'pilot@example.com',
+    attemptedAt: '2026-03-15T00:05:00.000Z',
+    error: null
+  });
+});
+
+test('createInviteCode persists the invite even when email delivery fails', async () => {
+  const inviteCodes = createInviteCodeStore();
+  const ops = createOpsApplicationModule({
+    gitmodules: createGitmoduleSource([]),
+    manualStore: createManualStore([]),
+    runtimeFlags: createRuntimeFlagStore(),
+    inviteCodes,
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender: createInviteEmailSenderStub(async () => {
+      throw new Error('SMTP unavailable');
+    })
+  });
+
+  const created = await ops.commands.createInviteCode.execute(
+    { code: 'MAIL-0002-BBBB', email: 'pilot@example.com' },
+    { userId: 'admin-1', roles: ['admin'] }
+  );
+
+  assert.equal(inviteCodes.invites.length, 1);
+  assert.equal(inviteCodes.invites[0]?.code, 'MAIL-0002-BBBB');
+  assert.equal(created.emailDelivery?.delivered, false);
+  assert.equal(created.emailDelivery?.recipient, 'pilot@example.com');
+  assert.equal(created.emailDelivery?.error, 'SMTP unavailable');
+});
+
+test('resendInviteCodeEmail succeeds for an active email-targeted invite', async () => {
+  const inviteEmailSender = createInviteEmailSenderStub();
+  const ops = createOpsApplicationModule({
+    gitmodules: createGitmoduleSource([]),
+    manualStore: createManualStore([]),
+    runtimeFlags: createRuntimeFlagStore(),
+    inviteCodes: createInviteCodeStore([
+      {
+        code: 'MAIL-0003-CCCC',
+        email: 'pilot@example.com',
+        label: 'Pilot invite',
+        note: null,
+        enabled: true,
+        expiresAt: '2026-03-30T12:00:00.000Z',
+        createdAt: '2026-03-15T00:00:00.000Z',
+        createdBy: 'admin-1',
+        redeemedAt: null,
+        redeemedByUserId: null,
+        redeemedEmail: null,
+        redeemedDisplayName: null
+      }
+    ]),
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender
+  });
+
+  const delivery = await ops.commands.resendInviteCodeEmail.execute('MAIL-0003-CCCC', {
+    userId: 'admin-1',
+    roles: ['admin']
+  });
+
+  assert.equal(delivery.delivered, true);
+  assert.equal(delivery.recipient, 'pilot@example.com');
+  assert.equal(inviteEmailSender.sent.length, 1);
+});
+
+test('resendInviteCodeEmail rejects ineligible invites', async () => {
+  const ops = createOpsApplicationModule({
+    gitmodules: createGitmoduleSource([]),
+    manualStore: createManualStore([]),
+    runtimeFlags: createRuntimeFlagStore(),
+    inviteCodes: createInviteCodeStore([
+      {
+        code: 'OPEN-0002-BBBB',
+        email: null,
+        label: null,
+        note: null,
+        enabled: true,
+        expiresAt: null,
+        createdAt: '2026-03-15T00:00:00.000Z',
+        createdBy: 'admin-1',
+        redeemedAt: null,
+        redeemedByUserId: null,
+        redeemedEmail: null,
+        redeemedDisplayName: null
+      }
+    ]),
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender: createInviteEmailSenderStub()
+  });
+
+  await assert.rejects(
+    () => ops.commands.resendInviteCodeEmail.execute('OPEN-0002-BBBB', { userId: 'admin-1', roles: ['admin'] }),
+    /not reserved for a specific email address/
+  );
 });

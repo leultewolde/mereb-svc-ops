@@ -43,6 +43,18 @@ type InviteCode {
   redeemedDisplayName: String
 }
 
+type InviteEmailDelivery {
+  delivered: Boolean!
+  recipient: String!
+  attemptedAt: String!
+  error: String
+}
+
+type CreateInviteCodeResult {
+  inviteCode: InviteCode!
+  emailDelivery: InviteEmailDelivery
+}
+
 type ProjectEnvironment {
   name: String!
   url: String
@@ -112,7 +124,8 @@ type Mutation {
   createRuntimeFlag(input: CreateRuntimeFlagInput!): RuntimeFlag!
   updateRuntimeFlag(key: String!, input: UpdateRuntimeFlagInput!): RuntimeFlag!
   deleteRuntimeFlag(key: String!): Boolean!
-  createInviteCode(input: CreateInviteCodeInput!): InviteCode!
+  createInviteCode(input: CreateInviteCodeInput!): CreateInviteCodeResult!
+  resendInviteCodeEmail(code: String!): InviteEmailDelivery!
   disableInviteCode(code: String!): InviteCode!
   deleteInviteCode(code: String!): Boolean!
 }

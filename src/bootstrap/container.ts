@@ -7,6 +7,7 @@ import { ManualProjectsStoreAdapter } from '../adapters/outbound/projects/manual
 import { PrismaClient } from '../../generated/client/index.js';
 import { PrismaRuntimeConfigStoreAdapter } from '../adapters/outbound/runtime/prisma-runtime-config-store.js';
 import { KeycloakInviteProvisionerAdapter } from '../adapters/outbound/invites/keycloak-invite-provisioner.js';
+import { SmtpInviteEmailSenderAdapter } from '../adapters/outbound/invites/smtp-invite-email-sender.js';
 
 export interface OpsContainer {
   ops: OpsApplicationModule;
@@ -43,7 +44,8 @@ export async function createContainer(): Promise<OpsContainer> {
     manualStore: new ManualProjectsStoreAdapter(),
     runtimeFlags: runtimeStore,
     inviteCodes: runtimeStore,
-    inviteProvisioner: new KeycloakInviteProvisionerAdapter()
+    inviteProvisioner: new KeycloakInviteProvisionerAdapter(),
+    inviteEmailSender: new SmtpInviteEmailSenderAdapter()
   });
 
   const defaultFlags = parseDefaultFlagsEnv();

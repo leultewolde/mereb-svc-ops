@@ -102,18 +102,38 @@ function createOpsModuleStub(): OpsApplicationModule {
           principal: { userId?: string; roles?: string[] }
         ) {
           return {
-            code: input.code ?? 'ABCD-EFGH-IJKL',
-            email: input.email ?? null,
-            label: null,
-            note: null,
-            enabled: true,
-            expiresAt: null,
-            createdAt: '2026-03-15T10:00:00.000Z',
-            createdBy: principal.userId ?? null,
-            redeemedAt: null,
-            redeemedByUserId: null,
-            redeemedEmail: null,
-            redeemedDisplayName: null
+            inviteCode: {
+              code: input.code ?? 'ABCD-EFGH-IJKL',
+              email: input.email ?? null,
+              label: null,
+              note: null,
+              enabled: true,
+              expiresAt: null,
+              createdAt: '2026-03-15T10:00:00.000Z',
+              createdBy: principal.userId ?? null,
+              redeemedAt: null,
+              redeemedByUserId: null,
+              redeemedEmail: null,
+              redeemedDisplayName: null
+            },
+            emailDelivery: input.email
+              ? {
+                  delivered: true,
+                  recipient: input.email,
+                  attemptedAt: '2026-03-15T10:00:01.000Z',
+                  error: null
+                }
+              : null
+          };
+        }
+      },
+      resendInviteCodeEmail: {
+        async execute(code: string) {
+          return {
+            delivered: true,
+            recipient: `${code.toLowerCase()}@example.com`,
+            attemptedAt: '2026-03-15T10:00:02.000Z',
+            error: null
           };
         }
       },
@@ -251,18 +271,38 @@ test('resolvers delegate query/mutation calls to application module', async () =
     ctx: GraphQLContext
   ) => Promise<unknown>)({}, { input: { code: 'WXYZ-1234-ABCD', email: 'pilot@example.com' } }, ctx);
   assert.deepEqual(createdInvite, {
-    code: 'WXYZ-1234-ABCD',
-    email: 'pilot@example.com',
-    label: null,
-    note: null,
-    enabled: true,
-    expiresAt: null,
-    createdAt: '2026-03-15T10:00:00.000Z',
-    createdBy: 'admin-1',
-    redeemedAt: null,
-    redeemedByUserId: null,
-    redeemedEmail: null,
-    redeemedDisplayName: null
+    inviteCode: {
+      code: 'WXYZ-1234-ABCD',
+      email: 'pilot@example.com',
+      label: null,
+      note: null,
+      enabled: true,
+      expiresAt: null,
+      createdAt: '2026-03-15T10:00:00.000Z',
+      createdBy: 'admin-1',
+      redeemedAt: null,
+      redeemedByUserId: null,
+      redeemedEmail: null,
+      redeemedDisplayName: null
+    },
+    emailDelivery: {
+      delivered: true,
+      recipient: 'pilot@example.com',
+      attemptedAt: '2026-03-15T10:00:01.000Z',
+      error: null
+    }
+  });
+
+  const resentInvite = await (mutation.resendInviteCodeEmail as (
+    src: unknown,
+    args: { code: string },
+    ctx: GraphQLContext
+  ) => Promise<unknown>)({}, { code: 'WXYZ-1234-ABCD' }, ctx);
+  assert.deepEqual(resentInvite, {
+    delivered: true,
+    recipient: 'wxyz-1234-abcd@example.com',
+    attemptedAt: '2026-03-15T10:00:02.000Z',
+    error: null
   });
 
   const disabledInvite = await (mutation.disableInviteCode as (

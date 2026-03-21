@@ -42,6 +42,8 @@ export function createResolvers(ops: OpsApplicationModule): IResolvers<unknown, 
         ops.commands.deleteRuntimeFlag.execute(key, { userId: ctx.userId, roles: ctx.roles }),
       createInviteCode: (_source: unknown, { input }: { input: CreateInviteCodeInput }, ctx: GraphQLContext) =>
         ops.commands.createInviteCode.execute(input, { userId: ctx.userId, roles: ctx.roles }),
+      resendInviteCodeEmail: (_source: unknown, { code }: { code: string }, ctx: GraphQLContext) =>
+        ops.commands.resendInviteCodeEmail.execute(code, { userId: ctx.userId, roles: ctx.roles }),
       disableInviteCode: (_source: unknown, { code }: { code: string }, ctx: GraphQLContext) =>
         ops.commands.disableInviteCode.execute(code, { userId: ctx.userId, roles: ctx.roles }),
       deleteInviteCode: (_source: unknown, { code }: { code: string }, ctx: GraphQLContext) =>
