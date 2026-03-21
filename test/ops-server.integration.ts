@@ -162,9 +162,14 @@ function createInviteEmailSenderStub(): InviteEmailSenderPort {
   };
 }
 
-function createInviteProvisionerStub(): InviteProvisionerPort {
+function createInviteProvisionerStub(
+  implementation?: (input: RedeemInviteInput) => Promise<{ userId: string }>
+): InviteProvisionerPort {
   return {
     async createUser(input: RedeemInviteInput) {
+      if (implementation) {
+        return implementation(input);
+      }
       return { userId: `usr-${input.code.toLowerCase()}` };
     }
   };

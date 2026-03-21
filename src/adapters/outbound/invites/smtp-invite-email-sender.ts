@@ -74,32 +74,111 @@ function buildRegisterUrl(webShellOrigin: string): string {
   return new URL('/register', webShellOrigin).toString();
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatInviteDate(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(parsed);
+}
+
 function buildInviteEmailText(invite: InviteCode & { email: string }, registerUrl: string): string {
+  const formattedExpiry = formatInviteDate(invite.expiresAt);
   return [
     'You have been invited to Mereb Social.',
     '',
+    'Use the code below to finish creating your account.',
+    '',
     `Invite code: ${invite.code}`,
     `Reserved email: ${invite.email}`,
-    invite.expiresAt ? `Expires at: ${invite.expiresAt}` : null,
+    formattedExpiry ? `Expires at: ${formattedExpiry}` : null,
     '',
     `Register here: ${registerUrl}`,
     '',
-    'Open the registration page and enter the invite code to create your account.'
+    'Open the registration page, enter the invite code, and complete your account details.',
+    '',
+    'If you were not expecting this invite, you can safely ignore this email.'
   ]
     .filter(Boolean)
     .join('\n');
 }
 
 function buildInviteEmailHtml(invite: InviteCode & { email: string }, registerUrl: string): string {
-  const expiry = invite.expiresAt ? `<p><strong>Expires at:</strong> ${invite.expiresAt}</p>` : '';
+  const escapedCode = escapeHtml(invite.code);
+  const escapedEmail = escapeHtml(invite.email);
+  const escapedRegisterUrl = escapeHtml(registerUrl);
+  const formattedExpiry = formatInviteDate(invite.expiresAt);
+  const expiryMarkup = formattedExpiry
+    ? [
+        '<tr>',
+        '  <td style="padding-top: 12px; font-size: 14px; color: #635b69;">Expires</td>',
+        `  <td style="padding-top: 12px; font-size: 14px; color: #231f2b; font-weight: 600; text-align: right;">${escapeHtml(formattedExpiry)}</td>`,
+        '</tr>'
+      ].join('')
+    : '';
+
   return [
-    '<div style="font-family: sans-serif; line-height: 1.5;">',
-    '<p>You have been invited to Mereb Social.</p>',
-    `<p><strong>Invite code:</strong> ${invite.code}</p>`,
-    `<p><strong>Reserved email:</strong> ${invite.email}</p>`,
-    expiry,
-    `<p><a href="${registerUrl}">Open the registration page</a> and enter the invite code to create your account.</p>`,
-    '</div>'
+    '<!doctype html>',
+    '<html>',
+    '  <body style="margin: 0; background: #fff8f9; color: #231f2b; font-family: Inter, Arial, sans-serif;">',
+    '    <div style="padding: 32px 16px;">',
+    '      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 640px; margin: 0 auto; border-collapse: collapse;">',
+    '        <tr>',
+    '          <td style="padding-bottom: 16px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #ff355d; font-weight: 700;">Mereb Social</td>',
+    '        </tr>',
+    '        <tr>',
+    '          <td style="background: #ffffff; border: 1px solid #ffd5dc; border-radius: 28px; box-shadow: 0 24px 48px rgba(255, 53, 93, 0.08); overflow: hidden;">',
+    '            <div style="padding: 36px 36px 28px; background: linear-gradient(180deg, #fff7f8 0%, #ffffff 100%);">',
+    '              <div style="display: inline-block; padding: 8px 14px; border-radius: 999px; background: #ffe5ea; color: #ff355d; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;">Invite only</div>',
+    '              <h1 style="margin: 20px 0 12px; font-size: 34px; line-height: 1.1; letter-spacing: -0.03em; color: #231f2b;">Your Mereb Social invite is ready</h1>',
+    '              <p style="margin: 0; font-size: 16px; line-height: 1.7; color: #635b69;">Use the invite code below to create your account and join the platform through the normal Mereb sign-in flow.</p>',
+    '            </div>',
+    '            <div style="padding: 0 36px 36px;">',
+    '              <div style="margin-top: 8px; padding: 24px; background: #fff4f6; border: 1px solid #ffdbe2; border-radius: 24px;">',
+    '                <div style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #7d7382; font-weight: 700;">Invite code</div>',
+    `                <div style="margin-top: 10px; font-size: 30px; line-height: 1; letter-spacing: 0.14em; font-weight: 800; color: #231f2b;">${escapedCode}</div>`,
+    '                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 18px; border-collapse: collapse;">',
+    '                  <tr>',
+    '                    <td style="font-size: 14px; color: #635b69;">Reserved email</td>',
+    `                    <td style="font-size: 14px; color: #231f2b; font-weight: 600; text-align: right;">${escapedEmail}</td>`,
+    '                  </tr>',
+    expiryMarkup,
+    '                </table>',
+    '              </div>',
+    '              <div style="margin-top: 28px;">',
+    `                <a href="${escapedRegisterUrl}" style="display: inline-block; padding: 16px 24px; border-radius: 999px; background: #ff355d; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700;">Open registration</a>`,
+    '              </div>',
+    `              <p style="margin: 20px 0 0; font-size: 14px; line-height: 1.7; color: #635b69;">If the button does not open, copy and paste this link into your browser:<br /><a href="${escapedRegisterUrl}" style="color: #ff355d; text-decoration: none;">${escapedRegisterUrl}</a></p>`,
+    '              <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #f1d6dc;">',
+    '                <p style="margin: 0; font-size: 13px; line-height: 1.7; color: #7d7382;">If you were not expecting this invite, you can safely ignore this email.</p>',
+    '              </div>',
+    '            </div>',
+    '          </td>',
+    '        </tr>',
+    '      </table>',
+    '    </div>',
+    '  </body>',
+    '</html>'
   ].join('');
 }
 
