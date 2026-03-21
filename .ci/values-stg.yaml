@@ -124,7 +124,7 @@ configMap:
   data:
     PORT: "4009"
     OIDC_AUDIENCE: account
-    PROFILE_BOOTSTRAP_URL: http://svc-profile.apps-stg.svc.cluster.local/internal/users/bootstrap
+    PROFILE_BOOTSTRAP_URL: http://svc-profile-stg.apps-stg.svc.cluster.local/internal/users/bootstrap
     REDIS_URL: redis://platform-stg-redis.platform-stg.svc.cluster.local:6379
     KAFKA_BROKERS: redpanda-platform-stg:9092
     SPLUNK_HEC_URL: https://splunk-hec.mereb.app/services/collector/event
