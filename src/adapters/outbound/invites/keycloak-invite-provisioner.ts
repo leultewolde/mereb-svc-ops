@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import type { InviteProvisionerPort } from '../../../application/ops/ports.js';
 import type { RedeemInviteInput } from '../../../domain/ops/runtime-config.js';
@@ -9,6 +8,8 @@ type KeycloakTokenResponse = {
 
 type KeycloakUserResponse = {
   id?: string;
+  username?: string;
+  email?: string;
 };
 
 type KeycloakInviteConfig = {
@@ -34,6 +35,20 @@ function basicAuthHeader(user: string, pass: string) {
   return `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`;
 }
 
+function parseUserIdFromLocationHeader(locationHeader: string | null): string | null {
+  if (!locationHeader) {
+    return null;
+  }
+
+  const trimmed = locationHeader.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const segments = trimmed.split('/').filter(Boolean);
+  return segments.at(-1) ?? null;
+}
+
 function loadConfig(): KeycloakInviteConfig {
   return {
     keycloakUrl: requireEnv('KEYCLOAK_URL'),
@@ -51,8 +66,11 @@ export class KeycloakInviteProvisionerAdapter implements InviteProvisionerPort {
   async createUser(input: RedeemInviteInput): Promise<{ userId: string }> {
     const config = loadConfig();
     const accessToken = await this.getAccessToken(config);
-    const username = input.email.trim().toLowerCase();
-    const userId = randomUUID();
+    const username = input.username.trim();
+    const email = input.email.trim().toLowerCase();
+    const firstName = input.firstName.trim();
+    const lastName = input.lastName.trim();
+    const displayName = input.displayName.trim();
 
     const createUserResponse = await fetch(
       `${config.keycloakUrl.replace(/\/$/, '')}/admin/realms/${config.realm}/users`,
@@ -63,12 +81,12 @@ export class KeycloakInviteProvisionerAdapter implements InviteProvisionerPort {
           'content-type': 'application/json'
         },
         body: JSON.stringify({
-          id: userId,
           username,
-          email: username,
+          email,
           enabled: true,
           emailVerified: false,
-          firstName: input.displayName.trim(),
+          firstName,
+          lastName,
           credentials: [
             {
               type: 'password',
@@ -87,11 +105,17 @@ export class KeycloakInviteProvisionerAdapter implements InviteProvisionerPort {
       throw new Error(`Keycloak user creation failed (${createUserResponse.status})`);
     }
 
+    const userId = await this.resolveCreatedUserId(
+      config,
+      accessToken,
+      createUserResponse,
+      username,
+      email
+    );
+
     try {
-      const bootstrapPayload = await this.bootstrapProfile(config, input, userId, username);
-      return {
-        userId: bootstrapPayload.id ?? userId
-      };
+      await this.bootstrapProfile(config, userId, username, email, displayName);
+      return { userId };
     } catch (error) {
       await this.deleteUser(config, accessToken, userId);
       throw error;
@@ -127,11 +151,50 @@ export class KeycloakInviteProvisionerAdapter implements InviteProvisionerPort {
     return accessToken;
   }
 
+  private async resolveCreatedUserId(
+    config: KeycloakInviteConfig,
+    accessToken: string,
+    createUserResponse: Response,
+    username: string,
+    email: string
+  ): Promise<string> {
+    const createdUserId = parseUserIdFromLocationHeader(createUserResponse.headers.get('location'));
+    if (createdUserId) {
+      return createdUserId;
+    }
+
+    const lookupResponse = await fetch(
+      `${config.keycloakUrl.replace(/\/$/, '')}/admin/realms/${config.realm}/users?username=${encodeURIComponent(username)}&exact=true`,
+      {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${accessToken}`
+        }
+      }
+    );
+
+    if (!lookupResponse.ok) {
+      throw new Error(`Keycloak user lookup failed (${lookupResponse.status})`);
+    }
+
+    const users = (await lookupResponse.json()) as KeycloakUserResponse[];
+    const matches = users.filter((user) => {
+      return Boolean(user.id) && user.username === username && user.email?.trim().toLowerCase() === email;
+    });
+
+    if (matches.length !== 1 || !matches[0]?.id) {
+      throw new Error('Unable to resolve the created Keycloak user');
+    }
+
+    return matches[0].id;
+  }
+
   private async bootstrapProfile(
     config: KeycloakInviteConfig,
-    input: RedeemInviteInput,
     userId: string,
-    username: string
+    username: string,
+    email: string,
+    displayName: string
   ): Promise<KeycloakUserResponse> {
     const bootstrapHeaders: Record<string, string> = {
       'content-type': 'application/json'
@@ -155,8 +218,8 @@ export class KeycloakInviteProvisionerAdapter implements InviteProvisionerPort {
         body: JSON.stringify({
           userId,
           preferred_username: username,
-          email: username,
-          name: input.displayName.trim(),
+          email,
+          name: displayName,
           clientId: config.clientId
         })
       });

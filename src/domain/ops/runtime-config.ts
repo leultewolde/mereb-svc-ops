@@ -65,6 +65,9 @@ export type CreateInviteCodeInput = {
 export type RedeemInviteInput = {
   code: string;
   email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
   displayName: string;
   password: string;
 };

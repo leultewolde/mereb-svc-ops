@@ -337,6 +337,9 @@ test('invite redemption provisions a user and completes redemption when the flag
   const result = await ops.commands.redeemInvite.execute({
     code: 'PILOT-0001-AAAA',
     email: 'pilot@example.com',
+    username: 'pilot-user',
+    firstName: 'Pilot',
+    lastName: 'User',
     displayName: 'Pilot User',
     password: 'supersecret'
   });
@@ -389,6 +392,9 @@ test('invite redemption cancels the invite when provisioning fails', async () =>
       ops.commands.redeemInvite.execute({
         code: 'PILOT-0002-BBBB',
         email: 'pilot@example.com',
+        username: 'pilot-user',
+        firstName: 'Pilot',
+        lastName: 'User',
         displayName: 'Pilot User',
         password: 'supersecret'
       }),

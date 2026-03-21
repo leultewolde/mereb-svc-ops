@@ -22,7 +22,7 @@ Core GraphQL operations:
 Public HTTP operations:
 
 - `GET /flags` returns `Record<string, boolean>` for runtime client flags
-- `POST /invite/redeem` redeems an invite code and provisions a Keycloak user when invite-only registration is enabled
+- `POST /invite/redeem` redeems an invite code and provisions a Keycloak user when invite-only registration is enabled. The request body must include `code`, `email`, `username`, `firstName`, `lastName`, `displayName`, and `password`.
 
 ## Data sources
 
@@ -89,3 +89,23 @@ enables a one-time fallback for the first rollout against an older non-empty
 
 That fallback is gated by `PRISMA_BASELINE_ON_P3005=1` and is only intended for
 existing environments being brought under Prisma Migrate for the first time.
+
+## Manual cleanup for historical duplicate invite users
+
+This service now provisions invite redemptions with the real Keycloak user ID.
+Older invite redemptions may still have duplicate `svc-profile` users if they
+were bootstrapped under a guessed or transitional ID.
+
+Use this manual cleanup flow for already-affected accounts:
+
+1. Find the real Keycloak user and note the stable `sub` / user ID.
+2. Search `svc-profile` for rows that share the same human identity but differ
+   by ID or handle, then identify which row was created under the real Keycloak
+   `sub` and which row was created under the stray bootstrap ID.
+3. Remove or deactivate the stray `svc-profile` row manually once you confirm it
+   does not own meaningful content or relationships.
+4. If needed, update `svc-ops.InviteCode.redeemedByUserId` so it points at the
+   real Keycloak user ID instead of the stray bootstrap ID.
+
+This change prevents new duplicates. Existing duplicates are intentionally left
+as an ops cleanup task rather than an automated merge flow.

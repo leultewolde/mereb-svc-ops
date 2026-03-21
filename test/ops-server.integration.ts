@@ -322,3 +322,118 @@ test('buildServer exposes project query and mutation flows with file-backed proj
     await app.close();
   }
 });
+
+test('invite redeem accepts the expanded identity payload and returns the provisioned user id', async () => {
+  const provisioned: RedeemInviteInput[] = [];
+  const { buildServer } = await import('../src/server.js');
+  const ops = createOpsApplicationModule({
+    gitmodules: new GitmodulesProjectsSourceAdapter(),
+    manualStore: new ManualProjectsStoreAdapter(),
+    runtimeFlags: createRuntimeFlagStore([
+      {
+        key: 'inviteOnlyRegistration',
+        description: 'Pilot access gate',
+        enabled: true,
+        updatedAt: '2026-03-15T00:00:00.000Z',
+        updatedBy: 'seed'
+      }
+    ]),
+    inviteCodes: createInviteCodeStore([
+      {
+        code: 'TEST2026',
+        email: 'test2026@mereb.app',
+        label: 'Pilot',
+        note: null,
+        enabled: true,
+        expiresAt: null,
+        createdAt: '2026-03-15T00:00:00.000Z',
+        createdBy: 'admin-1',
+        redeemedAt: null,
+        redeemedByUserId: null,
+        redeemedEmail: null,
+        redeemedDisplayName: null
+      }
+    ]),
+    inviteProvisioner: createInviteProvisionerStub(async (input) => {
+      provisioned.push(input);
+      return { userId: 'usr-real-1234' };
+    }),
+    inviteEmailSender: createInviteEmailSenderStub()
+  });
+  const app = await buildServer({ ops });
+
+  try {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/invite/redeem',
+      payload: {
+        code: 'TEST2026',
+        email: 'test2026@mereb.app',
+        username: 'test2026',
+        firstName: 'Test',
+        lastName: 'User',
+        displayName: 'Test User',
+        password: 'supersecret'
+      }
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.json(), { userId: 'usr-real-1234' });
+    assert.deepEqual(provisioned, [
+      {
+        code: 'TEST2026',
+        email: 'test2026@mereb.app',
+        username: 'test2026',
+        firstName: 'Test',
+        lastName: 'User',
+        displayName: 'Test User',
+        password: 'supersecret'
+      }
+    ]);
+  } finally {
+    await app.close();
+  }
+});
+
+test('invite redeem validates the full identity payload', async () => {
+  const { buildServer } = await import('../src/server.js');
+  const ops = createOpsApplicationModule({
+    gitmodules: new GitmodulesProjectsSourceAdapter(),
+    manualStore: new ManualProjectsStoreAdapter(),
+    runtimeFlags: createRuntimeFlagStore([
+      {
+        key: 'inviteOnlyRegistration',
+        description: 'Pilot access gate',
+        enabled: true,
+        updatedAt: '2026-03-15T00:00:00.000Z',
+        updatedBy: 'seed'
+      }
+    ]),
+    inviteCodes: createInviteCodeStore(),
+    inviteProvisioner: createInviteProvisionerStub(),
+    inviteEmailSender: createInviteEmailSenderStub()
+  });
+  const app = await buildServer({ ops });
+
+  try {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/invite/redeem',
+      payload: {
+        code: 'TEST2026',
+        email: 'test2026@mereb.app',
+        username: 'test2026',
+        firstName: 'Test',
+        displayName: 'Test User',
+        password: 'supersecret'
+      }
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.deepEqual(response.json(), {
+      error: 'code, email, username, firstName, lastName, displayName, and password are required'
+    });
+  } finally {
+    await app.close();
+  }
+});

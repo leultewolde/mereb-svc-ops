@@ -97,22 +97,40 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
     return container.ops.queries.publicFlags.execute();
   });
 
-  app.post<{ Body: { code?: string; email?: string; displayName?: string; password?: string } }>(
+  app.post<{
+    Body: {
+      code?: string;
+      email?: string;
+      username?: string;
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+      password?: string;
+    };
+  }>(
     '/invite/redeem',
     async (request, reply) => {
       const code = request.body?.code?.trim();
       const email = request.body?.email?.trim().toLowerCase();
+      const username = request.body?.username?.trim();
+      const firstName = request.body?.firstName?.trim();
+      const lastName = request.body?.lastName?.trim();
       const displayName = request.body?.displayName?.trim();
       const password = request.body?.password;
 
-      if (!code || !email || !displayName || !password) {
-        return reply.status(400).send({ error: 'code, email, displayName, and password are required' });
+      if (!code || !email || !username || !firstName || !lastName || !displayName || !password) {
+        return reply.status(400).send({
+          error: 'code, email, username, firstName, lastName, displayName, and password are required'
+        });
       }
 
       try {
         const result = await container.ops.commands.redeemInvite.execute({
           code,
           email,
+          username,
+          firstName,
+          lastName,
           displayName,
           password
         });
