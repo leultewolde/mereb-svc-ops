@@ -117,6 +117,39 @@ image:
         name: svc-ops-prd-secrets
         optional: true
 
+vaultSecretsOperator:
+  enabled: true
+  auth:
+    create: true
+    spec:
+      vaultAuthGlobalRef:
+        name: mereb-apps
+        namespace: vault-secrets-operator
+      kubernetes:
+        role: apps-prd-svc-ops
+  staticSecrets:
+    - name: svc-ops-runtime
+      spec:
+        type: kv-v2
+        mount: kv
+        path: apps/prd
+        refreshAfter: 5m
+        destination:
+          name: svc-ops-prd-secrets
+          create: true
+          overwrite: true
+          transformation:
+            excludes:
+              - .*
+            templates:
+              DATABASE_URL:
+                text: '{{- get .Secrets "OPS_DATABASE_URL" -}}'
+              SPLUNK_HEC_TOKEN:
+                text: '{{- get .Secrets "SPLUNK_HEC_TOKEN" -}}'
+        rolloutRestartTargets:
+          - kind: Deployment
+            name: svc-ops
+
 service:
   ports:
     - name: http

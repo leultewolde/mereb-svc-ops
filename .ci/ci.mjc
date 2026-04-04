@@ -48,30 +48,11 @@ deploy:
     release: svc-ops-dev
     namespace: apps-dev
     chart: app-chart
+    version: 0.1.1
     repo: https://charts.leultewolde.com
     repoCredentialId: helm-chart-creds
     valuesFiles:
       - .ci/values-dev.yaml
-      - .ci/.rendered/values-dev.secret.yaml
-    valuesTemplates:
-      - template: .ci/templates/values-secret.yaml.tpl
-        output: .ci/.rendered/values-dev.secret.yaml
-        vars:
-          SECRET_NAME: svc-ops-dev-secrets
-          DATABASE_URL:
-            vaultPath: kv/data/apps/dev
-            vaultField: OPS_DATABASE_URL
-          SPLUNK_HEC_TOKEN:
-            vaultPath: kv/data/apps/dev
-            vaultField: SPLUNK_HEC_TOKEN
-    vault:
-      url: https://vault.leultewolde.com
-      tokenEnv: VAULT_TOKEN
-      engine: kv2
-    credentials:
-      - type: vaultToken
-        id: vault-credentials
-        env: VAULT_TOKEN
     smoke:
       url: https://api-dev.mereb.app/ops/healthz
       retries: 3
@@ -82,30 +63,11 @@ deploy:
     release: svc-ops-stg
     namespace: apps-stg
     chart: app-chart
+    version: 0.1.1
     repo: https://charts.leultewolde.com
     repoCredentialId: helm-chart-creds
     valuesFiles:
       - .ci/values-stg.yaml
-      - .ci/.rendered/values-stg.secret.yaml
-    valuesTemplates:
-      - template: .ci/templates/values-secret.yaml.tpl
-        output: .ci/.rendered/values-stg.secret.yaml
-        vars:
-          SECRET_NAME: svc-ops-stg-secrets
-          DATABASE_URL:
-            vaultPath: kv/data/apps/stg
-            vaultField: OPS_DATABASE_URL
-          SPLUNK_HEC_TOKEN:
-            vaultPath: kv/data/apps/stg
-            vaultField: SPLUNK_HEC_TOKEN
-    vault:
-      url: https://vault.leultewolde.com
-      tokenEnv: VAULT_TOKEN
-      engine: kv2
-    credentials:
-      - type: vaultToken
-        id: vault-credentials
-        env: VAULT_TOKEN
     smoke:
       url: https://api-stg.mereb.app/ops/healthz
       retries: 3
@@ -116,30 +78,11 @@ deploy:
     release: svc-ops
     namespace: apps-prd
     chart: app-chart
+    version: 0.1.1
     repo: https://charts.leultewolde.com
     repoCredentialId: helm-chart-creds
     valuesFiles:
       - .ci/values-prd.yaml
-      - .ci/.rendered/values-prd.secret.yaml
-    valuesTemplates:
-      - template: .ci/templates/values-secret.yaml.tpl
-        output: .ci/.rendered/values-prd.secret.yaml
-        vars:
-          SECRET_NAME: svc-ops-prd-secrets
-          DATABASE_URL:
-            vaultPath: kv/data/apps/prd
-            vaultField: OPS_DATABASE_URL
-          SPLUNK_HEC_TOKEN:
-            vaultPath: kv/data/apps/prd
-            vaultField: SPLUNK_HEC_TOKEN
-    vault:
-      url: https://vault.leultewolde.com
-      tokenEnv: VAULT_TOKEN
-      engine: kv2
-    credentials:
-      - type: vaultToken
-        id: vault-credentials
-        env: VAULT_TOKEN
     smoke:
       url: https://api.mereb.app/ops/healthz
       retries: 3
