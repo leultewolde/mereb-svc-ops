@@ -477,6 +477,7 @@ test('createInviteCode persists the invite even when email delivery fails', asyn
 });
 
 test('resendInviteCodeEmail succeeds for an active email-targeted invite', async () => {
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const inviteEmailSender = createInviteEmailSenderStub();
   const ops = createOpsApplicationModule({
     gitmodules: createGitmoduleSource([]),
@@ -489,7 +490,7 @@ test('resendInviteCodeEmail succeeds for an active email-targeted invite', async
         label: 'Pilot invite',
         note: null,
         enabled: true,
-        expiresAt: '2026-03-30T12:00:00.000Z',
+        expiresAt,
         createdAt: '2026-03-15T00:00:00.000Z',
         createdBy: 'admin-1',
         redeemedAt: null,
