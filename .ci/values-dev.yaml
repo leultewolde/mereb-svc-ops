@@ -111,7 +111,7 @@ image:
         name: svc-ops-dev-config
     - secretRef:
         name: svc-ops-dev-secrets
-        optional: true
+        optional: false
 
 vaultSecretsOperator:
   enabled: true

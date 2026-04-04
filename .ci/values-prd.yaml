@@ -115,7 +115,7 @@ image:
         name: svc-ops-prd-config
     - secretRef:
         name: svc-ops-prd-secrets
-        optional: true
+        optional: false
 
 vaultSecretsOperator:
   enabled: true
