@@ -1,4 +1,5 @@
 version: 1
+recipe: service
 preset: node
 
 delivery:
