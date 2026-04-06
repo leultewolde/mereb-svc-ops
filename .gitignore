@@ -31,3 +31,4 @@ dist-ssr
 *.sw?
 /tsconfig.tsbuildinfo
 /generated/
+.ci/.rendered/
