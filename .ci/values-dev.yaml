@@ -119,10 +119,11 @@ vaultSecretsOperator:
     create: true
     spec:
       vaultAuthGlobalRef:
-        name: mereb-apps
+        name: mereb-apps-dev
         namespace: vault-secrets-operator
       kubernetes:
         role: apps-dev-svc-ops
+      mount: kubernetes-dev
   staticSecrets:
     - name: svc-ops-runtime
       spec:
