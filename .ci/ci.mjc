@@ -44,65 +44,73 @@ deploy:
     - stg
     - prd
 
+  defaults:
+    chart: app-chart
+    repo: https://charts.leultewolde.com
+    repoCredentialId: helm-chart-creds
+    wait: true
+    atomic: true
+    timeout: 10m
+
+  generatedBaseDefaults:
+    profile: apiService
+    inputs:
+      serviceName: svc-ops
+      containerPort: 4009
+      routePrefix: /ops
+      secretTemplates:
+        DATABASE_URL: OPS_DATABASE_URL
+        SPLUNK_HEC_TOKEN: SPLUNK_HEC_TOKEN
+      extraEnv:
+        - name: OIDC_ISSUER
+          fromPlatformIdentityConfigKey: OIDC_ISSUER
+        - name: KEYCLOAK_URL
+          fromPlatformIdentityConfigKey: KEYCLOAK_URL
+        - name: KEYCLOAK_REALM
+          fromPlatformIdentityConfigKey: KC_REALM
+        - name: KEYCLOAK_INVITE_CLIENT_ID
+          fromPlatformIdentityConfigKey: KEYCLOAK_INVITE_CLIENT_ID
+        - name: KEYCLOAK_INVITE_CLIENT_SECRET
+          fromPlatformIdentitySecretKey: KEYCLOAK_INVITE_CLIENT_SECRET
+        - name: PROFILE_BOOTSTRAP_SHARED_SECRET
+          fromPlatformIdentitySecretKey: PROFILE_BOOTSTRAP_SHARED_SECRET
+        - name: INVITE_EMAIL_SMTP_HOST
+          fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_HOST
+        - name: INVITE_EMAIL_SMTP_PORT
+          fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_PORT
+        - name: INVITE_EMAIL_SMTP_FROM
+          fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_FROM
+        - name: INVITE_EMAIL_SMTP_FROM_DISPLAY_NAME
+          fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_FROM_DISPLAY_NAME
+          optional: true
+        - name: INVITE_EMAIL_SMTP_REPLY_TO
+          fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_REPLY_TO
+          optional: true
+        - name: INVITE_EMAIL_SMTP_REPLY_TO_DISPLAY_NAME
+          fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_REPLY_TO_DISPLAY_NAME
+          optional: true
+        - name: INVITE_EMAIL_SMTP_SSL
+          fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_SSL
+        - name: INVITE_EMAIL_SMTP_STARTTLS
+          fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_STARTTLS
+        - name: INVITE_EMAIL_SMTP_USERNAME
+          fromPlatformIdentitySecretKey: INVITE_EMAIL_SMTP_USERNAME
+        - name: INVITE_EMAIL_SMTP_PASSWORD
+          fromPlatformIdentitySecretKey: INVITE_EMAIL_SMTP_PASSWORD
+        - name: WEB_SHELL_ORIGIN
+          fromPlatformIdentityConfigKey: WEB_SHELL_ORIGIN
+
   dev:
     release: svc-ops-dev
     namespace: apps-dev
-    chart: app-chart
     version: 0.1.1
-    repo: https://charts.leultewolde.com
-    repoCredentialId: helm-chart-creds
     valuesFiles:
       - .ci/values-dev.yaml
     generatedBaseValues:
-      profile: apiService
       inputs:
-        serviceName: svc-ops
-        containerPort: 4009
-        routePrefix: /ops
         configMapName: svc-ops-dev-config
         secretName: svc-ops-dev-secrets
         tlsSecretName: ops-dev-tls
-        secretTemplates:
-          DATABASE_URL: OPS_DATABASE_URL
-          SPLUNK_HEC_TOKEN: SPLUNK_HEC_TOKEN
-        extraEnv:
-          - name: OIDC_ISSUER
-            fromPlatformIdentityConfigKey: OIDC_ISSUER
-          - name: KEYCLOAK_URL
-            fromPlatformIdentityConfigKey: KEYCLOAK_URL
-          - name: KEYCLOAK_REALM
-            fromPlatformIdentityConfigKey: KC_REALM
-          - name: KEYCLOAK_INVITE_CLIENT_ID
-            fromPlatformIdentityConfigKey: KEYCLOAK_INVITE_CLIENT_ID
-          - name: KEYCLOAK_INVITE_CLIENT_SECRET
-            fromPlatformIdentitySecretKey: KEYCLOAK_INVITE_CLIENT_SECRET
-          - name: PROFILE_BOOTSTRAP_SHARED_SECRET
-            fromPlatformIdentitySecretKey: PROFILE_BOOTSTRAP_SHARED_SECRET
-          - name: INVITE_EMAIL_SMTP_HOST
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_HOST
-          - name: INVITE_EMAIL_SMTP_PORT
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_PORT
-          - name: INVITE_EMAIL_SMTP_FROM
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_FROM
-          - name: INVITE_EMAIL_SMTP_FROM_DISPLAY_NAME
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_FROM_DISPLAY_NAME
-            optional: true
-          - name: INVITE_EMAIL_SMTP_REPLY_TO
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_REPLY_TO
-            optional: true
-          - name: INVITE_EMAIL_SMTP_REPLY_TO_DISPLAY_NAME
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_REPLY_TO_DISPLAY_NAME
-            optional: true
-          - name: INVITE_EMAIL_SMTP_SSL
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_SSL
-          - name: INVITE_EMAIL_SMTP_STARTTLS
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_STARTTLS
-          - name: INVITE_EMAIL_SMTP_USERNAME
-            fromPlatformIdentitySecretKey: INVITE_EMAIL_SMTP_USERNAME
-          - name: INVITE_EMAIL_SMTP_PASSWORD
-            fromPlatformIdentitySecretKey: INVITE_EMAIL_SMTP_PASSWORD
-          - name: WEB_SHELL_ORIGIN
-            fromPlatformIdentityConfigKey: WEB_SHELL_ORIGIN
     smoke:
       url: https://api-dev.mereb.app/ops/healthz
       retries: 3
@@ -112,62 +120,14 @@ deploy:
   stg:
     release: svc-ops-stg
     namespace: apps-stg
-    chart: app-chart
     version: 0.1.1
-    repo: https://charts.leultewolde.com
-    repoCredentialId: helm-chart-creds
     valuesFiles:
       - .ci/values-stg.yaml
     generatedBaseValues:
-      profile: apiService
       inputs:
-        serviceName: svc-ops
-        containerPort: 4009
-        routePrefix: /ops
         configMapName: svc-ops-stg-config
         secretName: svc-ops-stg-secrets
         tlsSecretName: ops-stg-tls
-        secretTemplates:
-          DATABASE_URL: OPS_DATABASE_URL
-          SPLUNK_HEC_TOKEN: SPLUNK_HEC_TOKEN
-        extraEnv:
-          - name: OIDC_ISSUER
-            fromPlatformIdentityConfigKey: OIDC_ISSUER
-          - name: KEYCLOAK_URL
-            fromPlatformIdentityConfigKey: KEYCLOAK_URL
-          - name: KEYCLOAK_REALM
-            fromPlatformIdentityConfigKey: KC_REALM
-          - name: KEYCLOAK_INVITE_CLIENT_ID
-            fromPlatformIdentityConfigKey: KEYCLOAK_INVITE_CLIENT_ID
-          - name: KEYCLOAK_INVITE_CLIENT_SECRET
-            fromPlatformIdentitySecretKey: KEYCLOAK_INVITE_CLIENT_SECRET
-          - name: PROFILE_BOOTSTRAP_SHARED_SECRET
-            fromPlatformIdentitySecretKey: PROFILE_BOOTSTRAP_SHARED_SECRET
-          - name: INVITE_EMAIL_SMTP_HOST
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_HOST
-          - name: INVITE_EMAIL_SMTP_PORT
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_PORT
-          - name: INVITE_EMAIL_SMTP_FROM
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_FROM
-          - name: INVITE_EMAIL_SMTP_FROM_DISPLAY_NAME
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_FROM_DISPLAY_NAME
-            optional: true
-          - name: INVITE_EMAIL_SMTP_REPLY_TO
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_REPLY_TO
-            optional: true
-          - name: INVITE_EMAIL_SMTP_REPLY_TO_DISPLAY_NAME
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_REPLY_TO_DISPLAY_NAME
-            optional: true
-          - name: INVITE_EMAIL_SMTP_SSL
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_SSL
-          - name: INVITE_EMAIL_SMTP_STARTTLS
-            fromPlatformIdentityConfigKey: INVITE_EMAIL_SMTP_STARTTLS
-          - name: INVITE_EMAIL_SMTP_USERNAME
-            fromPlatformIdentitySecretKey: INVITE_EMAIL_SMTP_USERNAME
-          - name: INVITE_EMAIL_SMTP_PASSWORD
-            fromPlatformIdentitySecretKey: INVITE_EMAIL_SMTP_PASSWORD
-          - name: WEB_SHELL_ORIGIN
-            fromPlatformIdentityConfigKey: WEB_SHELL_ORIGIN
     smoke:
       url: https://api-stg.mereb.app/ops/healthz
       retries: 3
@@ -177,24 +137,14 @@ deploy:
   prd:
     release: svc-ops
     namespace: apps-prd
-    chart: app-chart
     version: 0.1.1
-    repo: https://charts.leultewolde.com
-    repoCredentialId: helm-chart-creds
     valuesFiles:
       - .ci/values-prd.yaml
     generatedBaseValues:
-      profile: apiService
       inputs:
-        serviceName: svc-ops
-        containerPort: 4009
-        routePrefix: /ops
         configMapName: svc-ops-prd-config
         secretName: svc-ops-prd-secrets
         tlsSecretName: ops-prd-tls
-        secretTemplates:
-          DATABASE_URL: OPS_DATABASE_URL
-          SPLUNK_HEC_TOKEN: SPLUNK_HEC_TOKEN
         extraEnv:
           - name: OIDC_ISSUER
             fromPlatformIdentityConfigKey: OIDC_ISSUER
