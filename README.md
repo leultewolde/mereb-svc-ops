@@ -42,7 +42,7 @@ Public HTTP operations:
 | `OIDC_AUDIENCE` | yes | - | JWT audience/client ID. |
 | `GITMODULES_PATH` | no | `gitmodules.seed` | Optional source file for submodule inventory. |
 | `MANUAL_PROJECTS_PATH` | no | `data/projects.local.json` | Optional manual projects store path. |
-| `OPS_DEFAULT_FLAGS` | no | - | JSON array of default runtime flags to ensure at startup. |
+| `OPS_DEFAULT_FLAGS` | no | - | JSON array of default runtime flags to ensure at startup. Hosted beta environments should seed both `inviteOnlyRegistration` and `mobileAccountCreationEnabled`. |
 | `KEYCLOAK_URL` | no | - | Required for invite redemption in hosted environments. |
 | `KEYCLOAK_REALM` | no | - | Required for invite redemption in hosted environments. |
 | `KEYCLOAK_INVITE_CLIENT_ID` | no | - | Confidential client used by `POST /invite/redeem`. |

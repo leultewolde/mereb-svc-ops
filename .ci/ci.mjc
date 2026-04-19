@@ -46,6 +46,7 @@ deploy:
 
   defaults:
     chart: app-chart
+    chartVersion: 0.1.2
     repo: https://charts.leultewolde.com
     repoCredentialId: helm-chart-creds
     wait: true
@@ -59,8 +60,9 @@ deploy:
       containerPort: 4009
       routePrefix: /ops
       secretTemplates:
-        DATABASE_URL: OPS_DATABASE_URL
         SPLUNK_HEC_TOKEN: SPLUNK_HEC_TOKEN
+      platformSecretTemplates:
+        DATABASE_URL: OPS_DATABASE_URL
       extraEnv:
         - name: OIDC_ISSUER
           fromPlatformIdentityConfigKey: OIDC_ISSUER
