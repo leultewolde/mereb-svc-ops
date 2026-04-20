@@ -23,6 +23,18 @@ build:
       - type: test
         name: Run integration tests
         command: test:integration
+      - type: custom
+        name: Check GraphOS subgraph compatibility
+        sh: ./scripts/graphos/check-subgraph.sh
+        env:
+          SUBGRAPH_NAME: ops
+          SERVICE_NAME: svc-ops
+          GRAPHOS_GRAPH_ID: mereb-supergraph
+          GRAPHOS_VARIANTS: dev,stg,prd
+        credentials:
+          - type: string
+            id: graphos-rover-api-key
+            env: ROVER_APOLLO_KEY
       - type: build
         name: Build ops service
 
@@ -116,6 +128,18 @@ deploy:
       retries: 3
       delay: 10
       timeout: 60s
+    postDeployStages:
+      - name: Publish GraphOS subgraph
+        env:
+          SUBGRAPH_NAME: ops
+          SERVICE_NAME: svc-ops
+          GRAPHOS_GRAPH_ID: mereb-supergraph
+          GRAPHOS_VARIANT: dev
+        credentials:
+          - type: string
+            id: graphos-rover-api-key
+            env: ROVER_APOLLO_KEY
+        sh: ./scripts/graphos/publish-subgraph.sh
 
   stg:
     release: svc-ops-stg
@@ -133,6 +157,18 @@ deploy:
       retries: 3
       delay: 10
       timeout: 60s
+    postDeployStages:
+      - name: Publish GraphOS subgraph
+        env:
+          SUBGRAPH_NAME: ops
+          SERVICE_NAME: svc-ops
+          GRAPHOS_GRAPH_ID: mereb-supergraph
+          GRAPHOS_VARIANT: stg
+        credentials:
+          - type: string
+            id: graphos-rover-api-key
+            env: ROVER_APOLLO_KEY
+        sh: ./scripts/graphos/publish-subgraph.sh
 
   prd:
     release: svc-ops
@@ -192,6 +228,18 @@ deploy:
       retries: 3
       delay: 10
       timeout: 60s
+    postDeployStages:
+      - name: Publish GraphOS subgraph
+        env:
+          SUBGRAPH_NAME: ops
+          SERVICE_NAME: svc-ops
+          GRAPHOS_GRAPH_ID: mereb-supergraph
+          GRAPHOS_VARIANT: prd
+        credentials:
+          - type: string
+            id: graphos-rover-api-key
+            env: ROVER_APOLLO_KEY
+        sh: ./scripts/graphos/publish-subgraph.sh
 
 signing:
   enabled: false
