@@ -60,9 +60,8 @@ deploy:
       containerPort: 4009
       routePrefix: /ops
       secretTemplates:
-        SPLUNK_HEC_TOKEN: SPLUNK_HEC_TOKEN
-      platformSecretTemplates:
         DATABASE_URL: OPS_DATABASE_URL
+        SPLUNK_HEC_TOKEN: SPLUNK_HEC_TOKEN
       extraEnv:
         - name: OIDC_ISSUER
           fromPlatformIdentityConfigKey: OIDC_ISSUER
