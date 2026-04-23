@@ -32,3 +32,4 @@ dist-ssr
 /tsconfig.tsbuildinfo
 /generated/
 .ci/.rendered/
+/.ci/tools/rover/0.36.2/rover
